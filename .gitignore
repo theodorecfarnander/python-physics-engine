@@ -1,0 +1,18 @@
+
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# PyCharm settings
+.idea/
+
+# Obsidian application settings
+Physics Engine Obsidian/.obsidian/
+
+# Python testing output
+.pytest_cache/
+.coverage
+htmlcov/
