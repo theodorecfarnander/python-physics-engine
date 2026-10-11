@@ -13,9 +13,25 @@ screen = pygame.display.set_mode((screen_x, screen_y))
 pygame.display.set_caption("Physics Engine")
 screen.fill(peach)
 
-ball = Ball(radius=50, colour=(41, 135, 230), x_pos=600, y_pos=350, x_velocity=550, y_velocity=200)
+colours = {
+    "light_blue": (41, 135, 230),
+    "pink": (255, 121, 255),
+    "light_green": (111, 250, 150)
+}
 
+ball_1 = Ball(radius=100, colour=colours["light_blue"], x_pos=500, y_pos=300, x_velocity=0, y_velocity=0)
+ball_2 = Ball(radius=100, colour=colours["pink"], x_pos=700, y_pos=300, x_velocity=0, y_velocity=0)
+ball_3 = Ball(radius=10, colour=colours["light_green"], x_pos=1000, y_pos=400, x_velocity=0, y_velocity=0)
 
+physics_objects = [ball_1, ball_2, ball_3]
+
+def check_collision(ball_a, ball_b):
+    distance = ( (ball_a.x - ball_b.x)**2 + (ball_a.y - ball_b.y)**2 )**0.5
+    r = ball_a.radius + ball_b.radius
+    if distance <= r:
+        return True
+    else:
+        return False
 
 running = True
 while running:
@@ -27,8 +43,13 @@ while running:
     elapsed_time = dt / 1000
     screen.fill(peach)
 
-    ball.update(screen_x, screen_y, elapsed_time, g)
-    ball.draw(screen)
+    for i in range(len(physics_objects)):
+        for j in range(i+1, len(physics_objects)):
+            print(check_collision(physics_objects[i], physics_objects[j]))
+
+    for physics_object in physics_objects:
+        physics_object.update(screen_x, screen_y, elapsed_time, g)
+        physics_object.draw(screen)
 
     pygame.display.flip()
 
