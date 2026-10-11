@@ -22,6 +22,20 @@ class Ball:
             radius=self.radius
         )
 
+    def draw_velocity(self, screen) -> None:
+        colour = (255, 0, 0) # Red
+        scale_factor = 0.1
+        start_x, start_y = self.position
+        end_x, end_y = (self.x + self.vx*scale_factor), (self.y + self.vy*scale_factor)
+        pygame.draw.line(
+            screen,
+            color = colour,
+            start_pos=(start_x, start_y),
+            end_pos=(end_x, end_y),
+            width=5
+        )
+
+
     def update(self, screen_x, screen_y, elapsed_time, gravity) -> None:
         g = gravity
         wall_left = 0 + self.radius
@@ -37,8 +51,11 @@ class Ball:
                 if distance_floor <=0:
                     hit_time = 0
                 else:
-                    discriminant = self.vy ** 2 + 2 * g * distance_floor
-                    hit_time = (-self.vy + discriminant**0.5) / g
+                    if g == 0:
+                        hit_time = distance_floor / self.vy
+                    else:
+                        discriminant = self.vy ** 2 + 2 * g * distance_floor
+                        hit_time = (-self.vy + discriminant ** 0.5) / g
                 #]
 
                 if 0 <= hit_time <= remaining_time:
@@ -102,6 +119,65 @@ class Ball:
             self.vy += g * remaining_time
             self.x += self.vx * remaining_time
             remaining_time = 0
+
+    def move(self, elapsed_time, gravity):
+        self.y += self.vy * elapsed_time + 0.5 * gravity * elapsed_time ** 2
+        self.vy += gravity * elapsed_time
+        self.x += self.vx * elapsed_time
+
+    def time_to_wall_collision(self, screen_x):
+        wall_left = self.radius
+        wall_right = screen_x - self.radius
+
+        if self.vx > 0:
+            distance = wall_right - self.x
+            if distance <= 0:
+                return 0
+            return distance / self.vx
+
+        elif self.vx < 0:
+            distance = self.x - wall_left
+            if distance <= 0:
+                return 0
+            return distance / abs(self.vx)
+
+        return None
+
+    def time_to_floor_collision(self, screen_y, gravity):
+        floor = screen_y - self.radius
+        distance = floor - self.y
+
+        # Solve:
+        # distance = vy*t + 0.5*gravity*t²
+
+        a = 0.5 * gravity
+        b = self.vy
+        c = -distance
+
+        if gravity == 0:
+            if self.vy <= 0:
+                return None
+
+            hit_time = distance / self.vy
+
+            if hit_time >= 0:
+                return hit_time
+
+            return None
+
+        discriminant = b ** 2 - 4 * a * c
+
+        if discriminant < 0:
+            return None
+
+        t1 = (-b - discriminant ** 0.5) / (2 * a)
+        t2 = (-b + discriminant ** 0.5) / (2 * a)
+
+        for t in sorted((t1, t2)):
+            if t >= 0 and self.vy + gravity * t > 0:
+                return t
+
+        return None
 
     @property
     def position(self) -> tuple[int, int]:
