@@ -14,7 +14,7 @@ class Ball:
         self.x, self.y = x_pos, y_pos
         self.vx, self.vy = x_velocity, y_velocity
 
-    def draw(self, screen):
+    def draw(self, screen) -> None:
         pygame.draw.circle(
             surface=screen,
             color=self.colour,
@@ -22,7 +22,7 @@ class Ball:
             radius=self.radius
         )
 
-    def update(self, screen_x, screen_y, elapsed_time, gravity):
+    def update(self, screen_x, screen_y, elapsed_time, gravity) -> None:
         g = gravity
         wall_left = 0 + self.radius
         wall_right = screen_x -self.radius
