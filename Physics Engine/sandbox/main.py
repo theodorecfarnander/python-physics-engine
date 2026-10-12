@@ -17,10 +17,11 @@ highest_point = 700
 screen_x = 2700
 screen_y = 1500
 g = 700 #pixels/s²
-peach = (255, 228, 176)
+light_mode = (255, 228, 176)
+dark_mode = (82, 82, 82)
 screen = pygame.display.set_mode((screen_x, screen_y))
 pygame.display.set_caption("Physics Engine")
-screen.fill(peach)
+screen.fill(dark_mode)
 
 colours = {
     "light_blue": (41, 135, 230),
@@ -45,8 +46,11 @@ ball_2 = Ball(
     x_velocity=-10,
     y_velocity=50
 )
-ball_3 = Ball(radius=100, colour=colours["light_green"], x_pos=800, y_pos=-50, x_velocity=-50, y_velocity=-50)
-physics_objects = [ball_1, ball_2, ball_3]
+ball_3 = Ball(radius=100, x_pos=800, y_pos=-50, x_velocity=-50, y_velocity=-50)
+ball_4 = Ball(radius=100, colour=colours["light_green"], x_pos=800, y_pos=-50, x_velocity=-50, y_velocity=-50)
+ball_5 = Ball(radius=100, colour=colours["light_green"], x_pos=800, y_pos=-50, x_velocity=-50, y_velocity=-50)
+ball_6 = Ball(radius=100, colour=colours["light_green"], x_pos=800, y_pos=-50, x_velocity=-50, y_velocity=-50)
+physics_objects = [ball_1, ball_2, ball_3, ball_4, ball_5, ball_6]
 
 
 running = True
@@ -58,7 +62,7 @@ while running:
     dt = clock.tick(FPS)
     elapsed_time = dt / 1000
 
-    screen.fill(peach)
+    screen.fill(dark_mode)
 
 
     for i in range(len(physics_objects)):

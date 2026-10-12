@@ -120,10 +120,24 @@ class Ball:
             self.x += self.vx * remaining_time
             remaining_time = 0
 
-    def move(self, elapsed_time, gravity):
+    def move(self, elapsed_time, gravity) -> None:
+        """
+        move() takes elapsed_time (time) and gravity as inputs.
+
+        move() does 3 main things:
+            1) updates the balls y position using s=u+(1/2)g*t*t to work out displacement then adding the result to current position
+            2) updates the balls y velocity using v=gt+u, u being the current velocity
+            3) updates the balls x position using s=v*t
+        """
+        # self.vy * elapsed_time tells us the distance the ball has traveled due to its velocity, 0.5 * gravity * elapsed_time ** 2 tells us the additional movement caused by gravity, s=u+(1/2)g*t*t, see proof
         self.y += self.vy * elapsed_time + 0.5 * gravity * elapsed_time ** 2
+
+        # Updates velocity due to gravity, v=gt+u, see proof
         self.vy += gravity * elapsed_time
+
+        # velocity is in px/s so multiplying by the time passed gives you the distance the ball has moved and adding this to its current location gives the new location, s=v*t, see proof
         self.x += self.vx * elapsed_time
+
 
     def time_to_wall_collision(self, screen_x):
         wall_left = self.radius
