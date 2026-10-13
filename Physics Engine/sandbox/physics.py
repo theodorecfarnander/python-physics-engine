@@ -1,19 +1,35 @@
-from ball import Ball
-
 def find_earliest_event(events):
+    """
+    find_earliest_event() takes 1 input events
+
+    find_earliest_event() does 2 main things
+        1) checks all the times of events and moves the events with valid times, t>=0, to a new list valid_events
+        2) finds the event with the shortest time until collision in valid events and returns it
+    """
+    # Cycles through the events list and only adds each event with a valid time, a time that is not None and is >= 0,
+    # to the list valid_events[]
     valid_events = [
         event for event in events
         if event[0] is not None and event[0] >= 0
     ]
 
+    # if valid events is empty move on
     if not valid_events:
         return None
-
+    # Grabs the shortest time remaining from the valid_events
     return min(valid_events, key=lambda event: event[0])
 
 def get_ball_collision_events(physics_objects, max_time):
-    events = []
+    """
+    get_ball_collision_events() takes physics_objects and max_time as inputs
 
+    get_ball_collision_events() checks every ball in physics_objects against every other ball so every pair of balls is
+    checked, without repeating pairs,
+    Each pair is checked with get_collisoin_time() to find out whether they are expected to collide within the frame, if
+    successful the predicted collision is stored in events[], after all the pairs are checked events[] is returned.
+    """
+    events = []
+    # Ensures every pair is checked without checking the same pair twice
     for i in range(len(physics_objects)):
         for j in range(i + 1, len(physics_objects)):
             ball_a = physics_objects[i]
@@ -60,7 +76,7 @@ def get_collision_time(ball_a, ball_b, max_time):
     # use relative v as we want to see how the distance between the balls change
     # dxₙ=dxₒ+vᵣₓt, dyₙ=dyₒ+vᵣᵧt
     # (dxₙ)²+(dyₙ)²=(Some distance in the future)²
-    # We are trying to predict time until collsion so we set future distance to R to find the exact collision point
+    # We are trying to predict time until collision so we set future distance to R to find the exact collision point
     # (dx+vᵣₓt)²+(dy+vᵣᵧt)²=R²
     # expand and simplify bringing R² to the left
     # (vᵣₓ² + vᵣᵧ²)t² + 2(dx*vᵣₓ + dx*vᵣᵧ)t + (dx² + dy² - R²) = 0
@@ -81,8 +97,9 @@ def get_collision_time(ball_a, ball_b, max_time):
     # if c > 0, the distance > R the balls have not touched
     # We only care if the balls have not touched
     if c <= 0:
+        if b < 0:
+            return 0.0
         return None
-
     # a = vᵣₓ² + vᵣᵧ²
     # if a = 0 than both relative velocities, vᵣₓ² and vᵣᵧ², must be = 0 meaning the balls have no relative movement
     # and collisions cannot be predicted
@@ -115,52 +132,77 @@ def get_collision_time(ball_a, ball_b, max_time):
     return None
 
 def get_all_events(physics_objects, screen_x, screen_y, gravity, max_time):
+    """
+    get_all_events() takes physics_objects, screen_x, screen_y, gravity, and max_time
+
+    get_all_events() lists all the predicted events between
+        - each ball with each other ball
+        - each ball with the walls
+        - each ball with the floor
+    and stores all the predicted events in the 2D list events.
+    events[] is a list of lists, each sublist represents a possible collision.
+    The sublists, representing possible collisions, take the form
+    (time until collision, collision type, ball(s) involved)
+    """
+    # Gather all the potential collisions between ball pairs
     events = get_ball_collision_events(physics_objects, max_time)
 
+    # For every ball in physics objects
     for ball in physics_objects:
+
+        # Find the time until they hit the wall
+        wall_time = ball.time_to_wall_collision(screen_x)
+        # if it's a valid time add the event to list events[]
         wall_time = ball.time_to_wall_collision(screen_x)
 
         if wall_time is not None and wall_time <= max_time:
             events.append((wall_time, "wall", ball))
-
+        # Find the time until they hit a wall
         floor_time = ball.time_to_floor_collision(screen_y, gravity)
-
+        # If it's a valid time add the event to list events[]
         if floor_time is not None and floor_time <= max_time:
             events.append((floor_time, "floor", ball))
 
     return events
 
-def resolve_event(event, screen_x, screen_y):
+def resolve_event(event, screen_x, screen_y, restitution=0.7):
+    """
+    resolve_event() takes 3 inputs event, screen_x, screen_y
+    resolve_event() finds the type of the event (ball, wall or floor) and resolves it
+    """
+    # Splits the event tuple into 3 variables
     event_time, event_type, objects = event
 
     if event_type == "ball":
         ball_a, ball_b = objects
 
-        resolve_collision(ball_a, ball_b)
+        resolve_collision(ball_a, ball_b, restitution=0.7)
 
+        # Checks collision if the balls are colliding they are separated, see separate_balls()
         if check_collision(ball_a, ball_b):
             separate_balls(ball_a, ball_b)
 
+
+
     elif event_type == "wall":
         ball = objects
-
-        # Place the ball exactly against the wall.
         if ball.vx > 0:
             ball.x = screen_x - ball.radius
         else:
             ball.x = ball.radius
-
-        # Reverse horizontal velocity.
-        ball.vx = -ball.vx
+        ball.vx = -ball.vx * restitution
 
     elif event_type == "floor":
         ball = objects
-
-        # Place the ball exactly on the floor.
         ball.y = screen_y - ball.radius
-
-        # Reverse vertical velocity.
-        ball.vy = -ball.vy
+        # Reverse vertical velocity and apply restitution
+        ball.vy = -ball.vy * restitution
+        # Stop very small bounces
+        if abs(ball.vy) < 1:
+            ball.vy = 0
+            ball.resting_on_floor = True
+        else:
+            ball.resting_on_floor = False
 
 def check_collision(ball_a, ball_b):
     """
@@ -249,24 +291,48 @@ def separate_balls(ball_a, ball_b):
     ball_b.x -= (overlap / 2) * nx
     ball_b.y -= (overlap / 2) * ny
 
-def resolve_collision(ball_a, ball_b):
+def resolve_collision(ball_a, ball_b, restitution=0.3):
     relative_speed = get_relative_velocity_along_normal(ball_a, ball_b)
 
-    # A speed of 0 or less means the balls are not moving towards each other
     if relative_speed >= 0:
         return
 
     nx, ny = get_collision_normal(ball_a, ball_b)
+    impulse = -(1 + restitution) * relative_speed / 2
 
-    impulse = -relative_speed
-
+    # Update both balls' velocities
     ball_a.vx += impulse * nx
     ball_a.vy += impulse * ny
 
     ball_b.vx -= impulse * nx
     ball_b.vy -= impulse * ny
 
-def simulate_step(physics_objects, screen_x, screen_y, gravity, elapsed_time):
+    # Wake up a resting ball if the collision pushes it upwards
+    if ball_a.vy < 0:
+        ball_a.resting_on_floor = False
+
+    if ball_b.vy < 0:
+        ball_b.resting_on_floor = False
+
+
+
+def simulate_step(physics_objects, screen_x, screen_y, gravity, elapsed_time) -> None:
+    """
+    simulate_step() takes the inputs physics_objects, screen_x, screen_y, gravity, elapsed_time
+
+    simulate_step() has 4 main steps
+        1) Find all the collisions that could happen in this frame, using get_all_events()
+        2) Find the collision with the shortest time remaining, using earliest_event()
+        3) If there is no earliest collision move all the balls for the rest of the frame, if there is a collision
+        all the balls are moved to for how long the collision is away
+        4) The collision is then resolved using, resolve_collision() the main loop then repeats
+    :param physics_objects:
+    :param screen_x:
+    :param screen_y:
+    :param gravity:
+    :param elapsed_time:
+    :return:
+    """
     remaining_time = elapsed_time
     event_count = 0
     max_events = 1000
@@ -290,6 +356,10 @@ def simulate_step(physics_objects, screen_x, screen_y, gravity, elapsed_time):
             for ball in physics_objects:
                 ball.move(remaining_time, gravity)
 
+                # Prevent balls from moving below the floor
+                if ball.y + ball.radius > screen_y:
+                    ball.y = screen_y - ball.radius
+
             remaining_time = 0
 
         else:
@@ -298,12 +368,16 @@ def simulate_step(physics_objects, screen_x, screen_y, gravity, elapsed_time):
             # Advance every ball to the collision.
             if collision_time > 0:
                 for ball in physics_objects:
-                    ball.move(collision_time, gravity)
+                    ball.move(remaining_time, gravity)
+
+                    # Prevent balls from moving below the floor
+                    if ball.y + ball.radius > screen_y:
+                        ball.y = screen_y - ball.radius
 
                 remaining_time -= collision_time
 
             # Resolve the collision at the impact position.
-            resolve_event(earliest_event, screen_x, screen_y)
+            resolve_event(earliest_event, screen_x, screen_y, restitution=0.7)
 
             event_count += 1
 
